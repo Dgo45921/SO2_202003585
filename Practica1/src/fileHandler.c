@@ -8,4 +8,7 @@ void createInitialFiles()
 
     FILE *practica1File;
     practica1File = fopen("./practica1.txt", "w+");
+
+    fclose(sysCallLogFile);
+    fclose(practica1File);
 }
