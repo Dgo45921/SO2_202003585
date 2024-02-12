@@ -11,46 +11,67 @@
 // Variable to track the number of child processes
 int num_children = 2;
 
-// Signal handler function
+// pointer to syscall log file
+FILE *sysCallLogFile;
+
 void handleCtrlC(int signal) {
     printf("\nCtrl+C received. Terminating processes.\n");
 
     // Loop to terminate all child processes
     for (int i = 0; i < num_children; ++i) {
-        wait(NULL); // Wait for each child process to finish
+        wait(NULL); 
     }
 
-    exit(0); // Terminate the parent process
-}
+   // fclose(sysCallLogFile);
 
+    exit(0); 
+}
 
 int main()
 {
     // Set up the custom signal handler
     signal(SIGINT, handleCtrlC);
+    createInitialFiles(); // creates syscall log file and practica1 file
+  // Command
+    char command[100];
+    int pidChildProcess1;
+    int pidChildProcess2;
+
+    sysCallLogFile = fopen("./syscalls.log", "w+");
+
     int childProcess1 = fork();
 
-    if (childProcess1 == 0){
+    if (childProcess1 == 0) {
         char *argPtr[2] = {"./practica1.txt", NULL};
 
         int childProcess2 = fork();
 
-        if (childProcess2 == 0){
-            // printf("child process 2 logic goes here\n");
+        if (childProcess2 == 0) {
+            // Child process 2 logic goes here
             execv("./childProcess.bin", argPtr);
         } else {
-            // printf("child process 1 logic goes here\n");
-            execv("./childProcess.bin", argPtr);
+            // Move this line outside the else block
+            pidChildProcess2 = childProcess2;
+            printf("Child process 2 PID: %d\n", pidChildProcess2);
+            // Child process 1 logic goes here
+            execv("./childProcess2.bin", argPtr);
         }
-    }
-    else {
+    } else {
+        pidChildProcess1 = childProcess1;
         printf("Parent process running with %d child processes.\n", num_children);
+        printf("Child process 1 PID: %d\n", pidChildProcess1);
+    
+        // Parent process waits for Ctrl+C or the child processes to finish
+        sprintf(command, "%s %d %d %s", "sudo stap ./src/trace.stp", pidChildProcess1, pidChildProcess2, " > syscalls.log");
+        printf("%s", command);
+        system(command);
 
-    // Parent process waits for Ctrl+C or the child processes to finish
         for (int i = 0; i < num_children; ++i) {
-            wait(NULL); // Wait for each child process to finish
+            wait(NULL);
         }
     }
+
+    fclose(sysCallLogFile);
 
     return 0;
 }

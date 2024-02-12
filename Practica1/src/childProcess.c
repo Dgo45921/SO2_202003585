@@ -5,6 +5,9 @@
 
 
 void writeOperation(FILE *file){
+    // printf("writing 8 chars\n");
+
+
     const char characters[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     const int stringLength = 8;
@@ -23,11 +26,13 @@ void writeOperation(FILE *file){
 }
 
 void readEightChars(FILE *file){
+    // printf("reading 8 chars\n");
     char buffer [9];
     fread(buffer, sizeof(char), 8, file);
 }
 
 void resetFilePointer(FILE *file){
+    // printf("moving pointer\n");
     fseek(file, 0, SEEK_SET);
 }
 
@@ -60,6 +65,7 @@ int main(int argc, char *argv[])
                 // lseek 
                 resetFilePointer(practicaFile);
             }
+            fclose(practicaFile);
         }
     } 
     else return -1;
