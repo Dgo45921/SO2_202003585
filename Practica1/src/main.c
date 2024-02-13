@@ -32,7 +32,8 @@ int main()
     // Set up the custom signal handler
     signal(SIGINT, handleCtrlC);
     createInitialFiles(); // creates syscall log file and practica1 file
-  // Command
+    char *argPtr[2] = {"./practica1.txt", NULL};
+    // Command
     char command[100];
     int pidChildProcess1;
     int pidChildProcess2;
@@ -42,29 +43,28 @@ int main()
     int childProcess1 = fork();
 
     if (childProcess1 == 0) {
-        char *argPtr[2] = {"./practica1.txt", NULL};
+        // Child process 1 logic goes here  
+        execv("./childProcess.bin", argPtr);
+        
+    } else {
 
         int childProcess2 = fork();
 
         if (childProcess2 == 0) {
             // Child process 2 logic goes here
             execv("./childProcess.bin", argPtr);
-        } else {
-            // Move this line outside the else block
-            pidChildProcess2 = childProcess2;
-            printf("Child process 2 PID: %d\n", pidChildProcess2);
-            // Child process 1 logic goes here
-            execv("./childProcess.bin", argPtr);
         }
-    } else {
         pidChildProcess1 = childProcess1;
+        pidChildProcess2 = childProcess2;
+
         printf("Parent process running with %d child processes.\n", num_children);
         printf("Child process 1 PID: %d\n", pidChildProcess1);
+        printf("Child process 2 PID: %d\n", pidChildProcess2);
 
         // Parent process waits for Ctrl+C or the child processes to finish
         sprintf(command, "%s %d %d %s", "sudo stap ./src/trace.stp", pidChildProcess1, pidChildProcess2, " > syscalls.log");
-        printf("%s", command);
-        //system(command);
+        //printf("%s", command);
+        system(command);
 
         for (int i = 0; i < num_children; ++i) {
             wait(NULL);
