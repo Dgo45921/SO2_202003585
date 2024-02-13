@@ -3,10 +3,8 @@
 #include <unistd.h>
 #include <time.h>
 
-
 void writeOperation(FILE *file){
     // printf("writing 8 chars\n");
-
 
     const char characters[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -55,6 +53,7 @@ int main(int argc, char *argv[])
             sleep(randomSleepSeconds);
             int randomOperation = getRandomOperationIndex();
             FILE *practicaFile = fopen(filename,"r+");
+            
             if (randomOperation == 0){
                 writeOperation(practicaFile);
             }

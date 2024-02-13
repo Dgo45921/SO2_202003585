@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "../headers/fileHandler.h"
 
+
 void createInitialFiles()
 {
     FILE *sysCallLogFile;
