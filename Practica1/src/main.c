@@ -54,17 +54,17 @@ int main()
             pidChildProcess2 = childProcess2;
             printf("Child process 2 PID: %d\n", pidChildProcess2);
             // Child process 1 logic goes here
-            execv("./childProcess2.bin", argPtr);
+            execv("./childProcess.bin", argPtr);
         }
     } else {
         pidChildProcess1 = childProcess1;
         printf("Parent process running with %d child processes.\n", num_children);
         printf("Child process 1 PID: %d\n", pidChildProcess1);
-    
+
         // Parent process waits for Ctrl+C or the child processes to finish
         sprintf(command, "%s %d %d %s", "sudo stap ./src/trace.stp", pidChildProcess1, pidChildProcess2, " > syscalls.log");
         printf("%s", command);
-        system(command);
+        //system(command);
 
         for (int i = 0; i < num_children; ++i) {
             wait(NULL);

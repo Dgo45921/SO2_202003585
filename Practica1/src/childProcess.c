@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
             int randomSleepSeconds = rand() % 3 + 1;
             sleep(randomSleepSeconds);
             int randomOperation = getRandomOperationIndex();
-            FILE *practicaFile = fopen(filename,"w");
+            FILE *practicaFile = fopen(filename,"r+");
             if (randomOperation == 0){
                 writeOperation(practicaFile);
             }
