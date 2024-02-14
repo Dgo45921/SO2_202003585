@@ -86,7 +86,6 @@ void handleCtrlC(int signal) {
 
 int main(){
 
-    int fd [2];
     // Set up the custom signal handler
     signal(SIGINT, handleCtrlC);
     createInitialFiles(); // creates syscall log file and practica1 file
