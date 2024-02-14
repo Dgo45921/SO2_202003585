@@ -65,16 +65,15 @@ void handleCtrlC(int signal) {
     
 
     // Display the results
-    for (int i = 0; i < 2; i++) {
-        printf("Process (%d) %d:\n", i + 1, pids[i]);
-        printf("  read: %d\n", read_count[i]);
-        printf("  seek: %d\n", seek_count[i]);
-        printf("  write: %d\n", write_count[i]);
-        printf("  open: %d\n", open_count[i]);
+    printf("Procesos: %d, %d :\n", pids[0], pids[1]);
+    printf("  read: %d\n", read_count[0] + read_count[1]);
+    printf("  seek: %d\n", seek_count[0] + seek_count[1]);
+    printf("  write: %d\n", write_count[0] + write_count[1]);
+    printf("  open: %d\n", open_count[0] + open_count[1]);
 
-        // Add more printf statements for other call types as needed
-        printf("\n");
-    }
+    // Add more printf statements for other call types as needed
+    printf("\n");
+    
 
     // Clean up
     free(line);
