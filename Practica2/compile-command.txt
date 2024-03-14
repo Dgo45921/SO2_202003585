@@ -1,0 +1,2 @@
+gcc ./src/main.c ./src/menus.c ./src/data_loader.c -o ./bin/main
+./bin/main
