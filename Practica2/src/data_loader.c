@@ -2,10 +2,10 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h> 
+#include <stdbool.h>
+#include <ctype.h>
 #include "./include/data_loader.h"
 #include "./include/structures.h"
-#include<unistd.h>
 
 #define MAX_LEN 255
 #define NUM_THREADS 3
@@ -14,6 +14,25 @@ pthread_mutex_t mutex;
 
 int num_users = 0;
 struct User users[500];
+
+bool hasLetters(const char *str) {
+    while (*str) {
+        if (isalpha(*str)) {
+            return true;
+        }
+        str++;
+    }
+    return false;
+}
+
+
+bool isFloat(const char *str) {
+    char *endptr;
+    strtof(str, &endptr);
+
+    // Check if the entire string was consumed and it doesn't contain any letters
+    return *endptr == '\n' && !hasLetters(str) || *endptr == '\0' && !hasLetters(str);
+}
 
 FILE* open_file(char* file_path){
     FILE* file = fopen(file_path, "r");
@@ -79,8 +98,8 @@ void *thread_read(void *thread_data) {
 
             if (column == 0) {
                 no_cuenta = atoi(token);
-                if (no_cuenta <= 0) {
-                    printf("Error: no. de cuenta debe de ser un entero positivo.\n");
+                if (no_cuenta <= 0 && token[0] != '0') {
+                    printf("Error: no. de cuenta debe de ser un entero positivo %s.", token);
                     error_found = true;
                     break;
                 }
@@ -94,8 +113,8 @@ void *thread_read(void *thread_data) {
                 strcpy(nombre, token);
             } else if (column == 2) {
                 saldo = atof(token);
-                if (saldo <= 0) {
-                    printf("Error: saldo debe de ser un positivo real.\n");
+                if (!isFloat(token) || saldo < 0) {
+                    printf("Error: saldo debe de ser un positivo real: %s", token);
                     error_found = true;
                     break;
 
@@ -133,8 +152,6 @@ void *thread_read(void *thread_data) {
 
 
     pthread_mutex_unlock(&mutex);
-
-
     fclose(file);
     pthread_exit(NULL);
 }
@@ -189,7 +206,7 @@ void separate_file(FILE *file, char *file_path) {
 
     data_threads[0].line_count = linesForWorker1;
     data_threads[1].line_count = linesForWorker2;
-    data_threads[3].line_count = linesForWorker3;
+    data_threads[2].line_count = linesForWorker3;
 
     pthread_mutex_init (&mutex, NULL);
     
@@ -235,76 +252,8 @@ void load_users(){
     separate_file(file, file_path);
 
     
-    // pthread_t threads[NUM_THREADS];
-    // struct ThreadData thread_data[NUM_THREADS];
 
-
-    // for (int i = 0; i < NUM_THREADS; i++) {
-    //     thread_data[i].file = file;
-    //     thread_data[i].start_pos = i * section_size;
-    //     thread_data[i].end_pos = (i == NUM_THREADS - 1) ? file_size : (i + 1) * section_size;
-
-    //     pthread_create(&threads[i], NULL, readFileSection, &thread_data[i]);
-    // }
-
-    // // Espera a que todos los hilos terminen
-    // for (int i = 0; i < NUM_THREADS; i++) {
-    //     pthread_join(threads[i], NULL);
-    // }
-
-
-    // // Read user data from three threads
-    // while (fgets(line, sizeof(line), file)) {
-
-    //     char *token = strtok(line, ",");
-    //     int column = 0;
-    //     while (token != NULL) {
-    //         // user data
-    //         bool user_is_valid = true;
-    //         int no_cuenta;
-    //         char nombre[50];
-    //         float saldo;
-    //         // ===============
-    //         if (column == 0) {
-    //             //printf("no_cuenta: %s\n", token);
-    //             // Check if no_cuenta is a positive integer
-    //             no_cuenta = atoi(token);
-    //             if (no_cuenta <= 0) {
-    //                 printf("Error: no. de cuenta debe de ser un entero positivo.\n");
-    //                 user_is_valid = false;
-    //             }
-    //         } else if (column == 1) {
-    //             //printf("nombre: %s\n", token);
-    //             strcpy(nombre, token);
-    //         } else if (column == 2) {
-    //             //printf("saldo: %s\n", token);
-    //             // Check if saldo is a positive float value
-    //             saldo = atof(token);
-    //             if (saldo <= 0) {
-    //                 printf("Error: saldo must be a positive float value.\n");
-    //                 // Handle error or exit the loop
-    //                 user_is_valid = false;
-
-    //             }
-    //         }
-    //         if(user_is_valid == true){
-    //             // save user
-    //             if(num_users < 500){
-    //                 struct User new_user = {no_cuenta};
-    //                 strcpy(new_user.name, nombre); 
-    //                 new_user.saldo = saldo;
-    //                 users[num_users] = new_user;
-    //                 num_users++;
-    //             }
-                
-    //         }
-    //         token = strtok(NULL, ",");
-    //         column++;
-    //     }
-    // }
-    
-
-     fclose(file);
+    fclose(file);
     // Print users
     printf("===============Usuarios cargados===============:\n");
     for (int i = 0; i < num_users; i++) {
