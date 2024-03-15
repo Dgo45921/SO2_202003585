@@ -12,8 +12,13 @@
 
 pthread_mutex_t mutex;
 
+// control variables
 int num_users = 0;
 struct User users[500];
+
+int num_errors_user_load = 0;
+struct ErrorData errors_user_load[500];
+
 
 bool hasLetters(const char *str) {
     while (*str) {
@@ -99,14 +104,24 @@ void *thread_read(void *thread_data) {
             if (column == 0) {
                 no_cuenta = atoi(token);
                 if (no_cuenta <= 0 && token[0] != '0') {
-                    printf("Error: no. de cuenta debe de ser un entero positivo %s.", token);
+                    if(num_errors_user_load < 500){
+                        struct ErrorData new_error;
+                        sprintf(new_error.message, "Error: codigo debe de ser un entero positivo %s", token);
+                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
+                        num_errors_user_load++;
+                    }
                     error_found = true;
                     break;
                 }
             } else if (column == 1) {
                 // compare that the name is not empty string
                 if (strcmp(token, "") == 0) {
-                    printf("Error: nombre no puede ser una cadena vacía.\n");
+
+                    if(num_errors_user_load < 500){
+                        struct ErrorData new_error = {"Error: nombre no puede ser una cadena vacía.\n"};
+                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
+                        num_errors_user_load++;
+                    }
                     error_found = true;
                     break;
                 }
@@ -114,7 +129,12 @@ void *thread_read(void *thread_data) {
             } else if (column == 2) {
                 saldo = atof(token);
                 if (!isFloat(token) || saldo < 0) {
-                    printf("Error: saldo debe de ser un positivo real: %s", token);
+                    if(num_errors_user_load < 500){
+                        struct ErrorData new_error;
+                        sprintf(new_error.message, "Error: saldo debe de ser un positivo real %s", token);
+                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
+                        num_errors_user_load++;
+                    }
                     error_found = true;
                     break;
 
@@ -132,7 +152,13 @@ void *thread_read(void *thread_data) {
             for (int i = 0; i < num_users; i++){
                 if (users[i].id == no_cuenta)
                 {
-                    printf("Error: El usuario con el no. de cuenta %d ya existe.\n", no_cuenta);
+
+                    if(num_errors_user_load < 500){
+                        struct ErrorData new_error;
+                        sprintf(new_error.message, "Error: El usuario con el no. de cuenta %d ya existe.\n", no_cuenta);
+                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
+                        num_errors_user_load++;
+                    }
                     break;
                 }
 
@@ -144,6 +170,7 @@ void *thread_read(void *thread_data) {
                 new_user.saldo = saldo;
                 users[num_users] = new_user;
                 num_users++;
+                thread_file_pointer->users_added = thread_file_pointer->users_added + 1;
             }
         }
         counter++;
@@ -154,6 +181,46 @@ void *thread_read(void *thread_data) {
     pthread_mutex_unlock(&mutex);
     fclose(file);
     pthread_exit(NULL);
+}
+
+void create_user_load_report(struct ThreadData data_threads []){
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    
+    // Create file name with the specified format
+    char filename[50];
+    sprintf(filename, "carga_%d_%02d_%02d-%02d_%02d_%02d.log", 
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, 
+            tm.tm_hour, tm.tm_min, tm.tm_sec);
+    
+    // Open the file for writing
+    FILE *file = fopen(filename, "w+");
+    if (file == NULL) {
+        printf("Error creando archivo de reporte carga masiva usuarios!\n");
+        return ;
+    }
+
+    fprintf(file, "=====Reporte de carga masiva de usuarios=====\n");
+
+    fprintf(file, "Fecha: %d_%02d_%02d %02d_%02d_%02d\n", 
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, 
+            tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+    fprintf(file, "====Usuarios cargados====\n");  
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        fprintf(file, "     Hilo #%d: %d\n", i+1, data_threads[i].users_added);
+    }
+
+    fprintf(file, "Total: %d\n", num_users);
+
+    fprintf(file, "=====Errores======:\n");
+
+    for (int i = 0; i < num_errors_user_load; i++) {
+        fprintf(file, "     %d. %s", i+1, errors_user_load[i].message);
+    }
+
+    fclose(file);
 }
 
 
@@ -202,6 +269,7 @@ void separate_file(FILE *file, char *file_path) {
         FILE* file = open_file(file_path);
         data_threads[i].file = file;
         data_threads[i].start_pointer = pointers[i];
+        data_threads[i].users_added = 0;
     }
 
     data_threads[0].line_count = linesForWorker1;
@@ -225,8 +293,12 @@ void separate_file(FILE *file, char *file_path) {
     }
 
     pthread_mutex_destroy(&mutex);
+
+
+    
     
     printf("All threads have completed.\n");
+    create_user_load_report(data_threads);
     
 
 
