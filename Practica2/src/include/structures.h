@@ -7,9 +7,12 @@ struct thread_data {
     long end_pos;
 };
 
-struct user {
+struct User {
     int id;
-    char first_name[50];
-    char last_name[50];
-    char email[50];
+    char name[50];
+    float saldo;
 };
+
+// create user array
+extern int num_users;
+extern struct User users[500];
