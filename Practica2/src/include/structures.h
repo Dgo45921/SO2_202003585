@@ -1,17 +1,16 @@
 #include <stdio.h>
 
-
-struct thread_data {
-    FILE* file;
-    long start_pos;
-    long end_pos;
-};
-
 struct User {
     int id;
     char name[50];
     float saldo;
 };
+
+struct ThreadData{
+    FILE* file;
+    long start_pointer;
+    int line_count;
+} ;
 
 // create user array
 extern int num_users;

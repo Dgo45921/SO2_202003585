@@ -1,0 +1,3 @@
+/home/dgo/Documents/Universidad/SOPES2/LAB/SO2_202003585/cmake-build-debug/CMakeFiles/SO2_202003585.dir
+/home/dgo/Documents/Universidad/SOPES2/LAB/SO2_202003585/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/dgo/Documents/Universidad/SOPES2/LAB/SO2_202003585/cmake-build-debug/CMakeFiles/rebuild_cache.dir
