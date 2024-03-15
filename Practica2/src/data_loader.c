@@ -259,9 +259,9 @@ void separate_file(FILE *file, char *file_path) {
     long pointers[3] = {fp_thread_1, fp_thread_2, fp_thread_3};
 
     // print all file pointers
-    for (int i = 0; i < NUM_THREADS; i++) {
-        printf("Pointer %d: %ld\n", i, pointers[i]);
-    }
+    // for (int i = 0; i < NUM_THREADS; i++) {
+    //     printf("Pointer %d: %ld\n", i, pointers[i]);
+    // }
     // Create threads
 
 
@@ -327,9 +327,9 @@ void load_users(){
 
     fclose(file);
     // Print users
-    printf("===============Usuarios cargados===============:\n");
-    for (int i = 0; i < num_users; i++) {
-        printf("no_cuenta: %d, nombre: %s, saldo: %f\n", users[i].id, users[i].name, users[i].saldo);
-    }
+    // printf("===============Usuarios cargados===============:\n");
+    // for (int i = 0; i < num_users; i++) {
+    //     printf("no_cuenta: %d, nombre: %s, saldo: %f\n", users[i].id, users[i].name, users[i].saldo);
+    // }
     
 }
