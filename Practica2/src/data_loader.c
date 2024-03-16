@@ -6,6 +6,8 @@
 #include <ctype.h>
 #include "./include/data_loader.h"
 #include "./include/structures.h"
+#include "./include/utils.h"
+
 
 #define MAX_LEN 255
 #define NUM_THREADS 3
@@ -125,6 +127,7 @@ void *thread_read(void *thread_data) {
                 strcpy(nombre, token);
             } else if (column == 2) {
                 saldo = atof(token);
+
                 if (!isFloat(token) || saldo < 0) {
                     if(num_errors_user_load < 500){
                         struct ErrorData new_error;

@@ -4,13 +4,10 @@
 #include "./include/data_loader.h"
 #include "./include/structures.h"
 #include "./include/operations.h"
+#include "./include/utils.h"
 
-void clear_input_buffer()
-{
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF)
-        ;
-}
+
+
 
 void acounts_report()
 {
@@ -144,7 +141,7 @@ void print_operations_menu()
         switch (option)
         {
         case 1 ... 5:
-            do_operation(option); 
+            do_individual_operation(option); 
             break;
         default:
             printf("Opción no válida. Por favor, ingrese una opción válida.\n");
