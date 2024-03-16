@@ -13,7 +13,17 @@ struct ThreadData{
     int users_added;
 } ;
 
+struct ThreadTransactionData{
+    FILE* file;
+    long start_pointer;
+    int line_count;
+} ;
+
 struct ErrorData{
+    char message[100];
+} ;
+
+struct ErrorTransactionData{
     char message[100];
 } ;
 
@@ -25,3 +35,8 @@ extern struct User users[500];
 // create user load error array
 extern int num_errors_user_load;
 extern struct ErrorData errors_user_load[500];
+
+
+// create user load error array
+extern int num_errors_transaction_data;
+extern struct ErrorTransactionData errors_transaction_data[500];

@@ -11,12 +11,16 @@
 
 #define MAX_LEN 255
 #define NUM_THREADS 3
+#define NUM_THREADS_TRANSACTIONS 4
 
 pthread_mutex_t mutex;
 
 
 int num_errors_user_load = 0;
 struct ErrorData errors_user_load[500];
+
+int num_errors_transaction_data = 0;
+struct ErrorTransactionData errors_transaction_data[500];
 
 
 bool hasLetters(const char *str) {
@@ -183,6 +187,25 @@ void *thread_read(void *thread_data) {
     pthread_exit(NULL);
 }
 
+void *thread_read_transaction(void *thread_data) {
+    struct ThreadTransactionData *thread_file_pointer = (struct ThreadTransactionData*)thread_data;
+    FILE* file = thread_file_pointer->file;
+    long start_pointer = thread_file_pointer->start_pointer;
+    int line_count = thread_file_pointer->line_count;
+    fseek(file, start_pointer, SEEK_SET);
+    char line[MAX_LEN];
+    int counter = 0;
+    pthread_mutex_lock(&mutex);
+
+    while (fgets(line, sizeof(line), file) && counter < line_count) {
+
+    }
+    
+    pthread_mutex_unlock(&mutex);
+    fclose(file);
+    pthread_exit(NULL);
+}
+
 void create_user_load_report(struct ThreadData data_threads []){
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
@@ -258,12 +281,6 @@ void separate_file(FILE *file, char *file_path) {
     struct ThreadData data_threads[3];
     long pointers[3] = {fp_thread_1, fp_thread_2, fp_thread_3};
 
-    // print all file pointers
-    // for (int i = 0; i < NUM_THREADS; i++) {
-    //     printf("Pointer %d: %ld\n", i, pointers[i]);
-    // }
-    // Create threads
-
 
     for (int i = 0; i < NUM_THREADS; i++) {
         FILE* file = open_file(file_path);
@@ -279,7 +296,6 @@ void separate_file(FILE *file, char *file_path) {
     pthread_mutex_init (&mutex, NULL);
     
     for (int i = 0; i < NUM_THREADS; i++) {
-        printf("Creating thread %d\n", i);
         int rc = pthread_create(&threads[i], NULL, thread_read, (void *)&data_threads[i]);
         if (rc) {
             printf("ERROR: return code from pthread_create() is %d\n", rc);
@@ -293,17 +309,87 @@ void separate_file(FILE *file, char *file_path) {
     }
 
     pthread_mutex_destroy(&mutex);
-
-
-    
     
     printf("*******Usuarios cargados*******\n");
     create_user_load_report(data_threads);
     
-
-
-
 }
+
+void separate_transaction_file(FILE *file, char *file_path) {
+
+    char line[MAX_LEN];
+
+    int total_lines = count_lines(file);
+    fgets(line, sizeof(line), file);
+    
+    int linesPerWorker = total_lines / NUM_THREADS_TRANSACTIONS;
+    int remaininglines = total_lines % NUM_THREADS_TRANSACTIONS;
+
+    int linesForWorker1 = linesPerWorker;
+    int linesForWorker2 = linesPerWorker;
+    int linesForWorker3 = linesPerWorker;
+    int linesForWorker4 = linesPerWorker + remaininglines;
+
+    long fp_thread_1 = ftell(file);
+    
+    for (int i = 0; i < linesForWorker1; i++){
+       char* test = fgets(line, sizeof(line), file);
+    }
+
+    long fp_thread_2 = ftell(file);
+
+    for (int i = 0; i < linesForWorker2; i++){
+        char* test = fgets(line, sizeof(line), file);
+    }
+    
+    long fp_thread_3 = ftell(file);
+    for (int i = 0; i < linesForWorker3; i++){
+        char* test = fgets(line, sizeof(line), file);
+    }
+    long fp_thread_4 = ftell(file);
+
+    // Create threads
+    pthread_t threads[NUM_THREADS_TRANSACTIONS];
+
+    struct ThreadTransactionData data_threads[4];
+    long pointers[4] = {fp_thread_1, fp_thread_2, fp_thread_3, fp_thread_4};
+
+
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++) {
+        FILE* file = open_file(file_path);
+        data_threads[i].file = file;
+        data_threads[i].start_pointer = pointers[i];
+    }
+
+    data_threads[0].line_count = linesForWorker1;
+    data_threads[1].line_count = linesForWorker2;
+    data_threads[2].line_count = linesForWorker3;
+    data_threads[3].line_count = linesForWorker4;
+
+
+    pthread_mutex_init (&mutex, NULL);
+    
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++) {
+        int rc = pthread_create(&threads[i], NULL, thread_read_transaction, (void *)&data_threads[i]);
+        if (rc) {
+            printf("ERROR: return code from pthread_create() is %d\n", rc);
+            return;
+        }
+    }
+    
+    // Wait for threads to finish
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    pthread_mutex_destroy(&mutex);
+    
+    printf("*******Operaciones efectuadas*******\n");
+    // create_user_load_report(data_threads);
+    
+}
+
+
 void load_users(){
     char *file_path = ask_file_path();
     if (file_path == NULL) {
@@ -323,7 +409,7 @@ void load_users(){
     }
     separate_file(file, file_path);
 
-    
+
 
     fclose(file);
     // Print users
@@ -331,5 +417,30 @@ void load_users(){
     // for (int i = 0; i < num_users; i++) {
     //     printf("no_cuenta: %d, nombre: %s, saldo: %f\n", users[i].id, users[i].name, users[i].saldo);
     // }
-    
+
+}
+
+
+void do_transactions(){
+    char *file_path = ask_file_path();
+    if (file_path == NULL) {
+        return;
+    }
+
+    FILE* file = open_file(file_path);
+
+    char line[MAX_LEN];
+    char* header_line = fgets(line, sizeof(line), file); // get header line
+
+    // Check if header line is correct
+    if (strcmp(header_line, "operacion,cuenta1,cuenta2,monto\r\n") != 0 && strcmp(header_line, "operacion,cuenta1,cuenta2,monto\n") != 0) {
+        printf("Error: Encabezados del archivo no coinciden con: 'operacion,cuenta1,cuenta2,monto'\n");
+        fclose(file);
+        return ;
+    }
+    separate_file(file, file_path);
+
+
+
+    fclose(file);
 }
