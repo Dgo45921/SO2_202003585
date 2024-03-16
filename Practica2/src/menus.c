@@ -106,6 +106,7 @@ void print_load_menu()
             break;
         case 2:
             printf("2. Cargar operaciones\n");
+            do_transactions();
             break;
         case 3:
             printf("3. Retornar\n");
