@@ -12,9 +12,6 @@
 
 pthread_mutex_t mutex;
 
-// control variables
-int num_users = 0;
-struct User users[500];
 
 int num_errors_user_load = 0;
 struct ErrorData errors_user_load[500];
@@ -297,7 +294,7 @@ void separate_file(FILE *file, char *file_path) {
 
     
     
-    printf("All threads have completed.\n");
+    printf("*******Usuarios cargados*******\n");
     create_user_load_report(data_threads);
     
 
