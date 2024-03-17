@@ -1,5 +1,4 @@
 # compile and link from Practica2 folder and create an executable in bin called 'main'
- gcc ./src/main.c ./src/menus.c ./src/data_loader.c ./src/operations.c ./src/uti
-ls.c  -o ./bin/main
+gcc ./src/main.c ./src/menus.c ./src/data_loader.c ./src/operations.c ./src/utils.c  -o ./bin/main
 # execution of program from Practica2 folder
     ./bin/main
