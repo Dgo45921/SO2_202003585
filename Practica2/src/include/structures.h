@@ -17,6 +17,9 @@ struct ThreadTransactionData{
     FILE* file;
     long start_pointer;
     int line_count;
+    int retirements_added;
+    int deposits_added;
+    int transfers_added;
 } ;
 
 struct ErrorData{

@@ -7,6 +7,7 @@
 #include "./include/data_loader.h"
 #include "./include/structures.h"
 #include "./include/utils.h"
+#include "./include/operations.h"
 
 #define MAX_LEN 255
 #define NUM_THREADS 3
@@ -217,30 +218,112 @@ void *thread_read_transaction(void *thread_data)
     while (fgets(line, sizeof(line), file) && counter < line_count)
     {
 
+        int operation = -1;
+        int source_account_id = -1;
+        int destination_account_id = -1;
+        float amount = -1;
+        bool error_found = false;
+
         char *token = strtok(line, ",");
         int column = 0;
         while (token != NULL)
         {
 
+            // token[strcspn(token, "\n")] = '\0';
+
             if (column == 0)
             {
-                printf("%s,", token);
+                operation = atoi(token);
+                if (operation != 1 || operation != 2 || operation != 3)
+                {
+                    if (num_errors_user_load < 500)
+                    {
+                        struct ErrorTransactionData new_error;
+                        sprintf(new_error.message, "Error: operacion debe ser 1 o 2 o 3 %s", token);
+                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
+                        num_errors_user_load++;
+                    }
+                    error_found = true;
+                    break;
+                }
             }
             else if (column == 1)
             {
-                printf("%s,", token);
+                source_account_id = atoi(token);
+                if (source_account_id <= 0)
+                {
+                    if (num_errors_user_load < 500)
+                    {
+                        struct ErrorTransactionData new_error;
+                        sprintf(new_error.message, "Error: numero de cuenta origen debe de ser un entero positivo %s", token);
+                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
+                        num_errors_user_load++;
+                    }
+                    error_found = true;
+                    break;
+                }
             }
             else if (column == 2)
             {
-                printf("%s,", token);
+                source_account_id = atoi(token);
+                if (source_account_id <= 0)
+                {
+                    if (num_errors_user_load < 500)
+                    {
+                        struct ErrorTransactionData new_error;
+                        sprintf(new_error.message, "Error: numero de cuenta destino debe de ser un entero positivo %s", token);
+                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
+                        num_errors_user_load++;
+                    }
+                    error_found = true;
+                    break;
+                }
             }
             else if (column == 3)
             {
-                printf("%s\n", token);
+                amount = atof(token);
+
+                if (!isFloat(token) || amount < 0)
+                {
+                    if (num_errors_user_load < 500)
+                    {
+                        struct ErrorTransactionData new_error;
+                        sprintf(new_error.message, "Error: saldo debe de ser un positivo real %s", token);
+                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
+                        num_errors_user_load++;
+                    }
+                    error_found = true;
+                    break;
+                }
             }
 
             token = strtok(NULL, ",");
             column++;
+        }
+        counter++;
+        if (!error_found)
+        {
+
+            if (operation == 1)
+            {
+                if (do_deposit(source_account_id, amount, true) == 0)
+                {
+                    thread_file_pointer->deposits_added = thread_file_pointer->deposits_added + 1;
+                }
+            }
+            else if (operation == 2)
+            {
+                if (do_money_retirement(source_account_id, amount, true) == 0)
+                {
+                    thread_file_pointer->retirements_added = thread_file_pointer->retirements_added + 1;
+                }
+            }
+            else if (operation == 3)
+            {
+                if (do_transaction(source_account_id, destination_account_id, amount, true)){
+                    thread_file_pointer->transfers_added = thread_file_pointer->transfers_added + 1;
+                }
+            }
         }
     }
 
@@ -293,6 +376,66 @@ void create_user_load_report(struct ThreadData data_threads[])
     fclose(file);
 }
 
+void create_transaction_load_report(struct ThreadTransactionData data_threads[])
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+
+    // Create file name with the specified format
+    char filename[50];
+    sprintf(filename, "operaciones_%d_%02d_%02d-%02d_%02d_%02d.log",
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+    // Open the file for writing
+    FILE *file = fopen(filename, "w+");
+    if (file == NULL)
+    {
+        printf("Error creando archivo de reporte de carga masiva de operaciones!\n");
+        return;
+    }
+
+    fprintf(file, "=====Resumen de operaciones=====\n");
+
+    fprintf(file, "Fecha: %d-%02d-%02d %02d-%02d-%02d\n",
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+    fprintf(file, "====Operaciones realizadas====\n");
+
+    int total_deposits = 0;
+    int total_retirements = 0;
+    int total_transfers = 0;
+    
+
+
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++)
+    {
+        total_deposits += data_threads[i].deposits_added;
+        total_retirements += data_threads[i].retirements_added;
+        total_transfers += data_threads[i].transfers_added;
+    }
+
+    fprintf(file, "     Depositos: %d\n", total_deposits);
+    fprintf(file, "     Retiros: %d\n", total_retirements);
+    fprintf(file, "     Transferencias: %d\n", total_transfers);
+    fprintf(file, "Total: %d\n", total_deposits + total_retirements + total_transfers);
+
+    fprintf(file, "====Operaciones por hilo====\n");
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++)
+    {
+        fprintf(file, "     Hilo #%d: %d\n", i+1 ,data_threads[i].deposits_added + data_threads[i].retirements_added + data_threads[i].transfers_added );
+    }
+
+    fprintf(file, "=====Errores======:\n");
+
+    for (int i = 0; i < num_errors_transaction_data; i++)
+    {
+        fprintf(file, "     %d. %s\n", i + 1, errors_transaction_data[i].message);
+    }
+
+    fclose(file);
+}
 void separate_file(FILE *file, char *file_path)
 {
 
@@ -394,7 +537,6 @@ void separate_transaction_file(FILE *file, char *file_path)
     for (int i = 0; i < linesForWorker2; i++)
     {
         char *test = fgets(line, sizeof(line), file);
-
     }
 
     long fp_thread_3 = ftell(file);
@@ -406,46 +548,53 @@ void separate_transaction_file(FILE *file, char *file_path)
 
     long fp_thread_4 = ftell(file);
 
+    // Create threads
+    pthread_t threads[NUM_THREADS_TRANSACTIONS];
 
+    struct ThreadTransactionData data_threads[4];
+    long pointers[4] = {fp_thread_1, fp_thread_2, fp_thread_3, fp_thread_4};
 
-    //    // Create threads
-    //    pthread_t threads[NUM_THREADS_TRANSACTIONS];
-    //
-    //    struct ThreadTransactionData data_threads[4];
-    //    long pointers[4] = {fp_thread_1, fp_thread_2, fp_thread_3, fp_thread_4};
-    //
-    //
-    //    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++) {
-    //        FILE* file = open_file(file_path);
-    //        data_threads[i].file = file;
-    //        data_threads[i].start_pointer = pointers[i];
-    //    }
-    //
-    //    data_threads[0].line_count = linesForWorker1;
-    //    data_threads[1].line_count = linesForWorker2;
-    //    data_threads[2].line_count = linesForWorker3;
-    //    data_threads[3].line_count = linesForWorker4;
-    //
-    //
-    //    pthread_mutex_init (&mutex, NULL);
-    //
-    //    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++) {
-    //        int rc = pthread_create(&threads[i], NULL, thread_read_transaction, (void *)&data_threads[i]);
-    //        if (rc) {
-    //            printf("ERROR: return code from pthread_create() is %d\n", rc);
-    //            return;
-    //        }
-    //    }
-    //
-    //    // Wait for threads to finish
-    //    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++) {
-    //        pthread_join(threads[i], NULL);
-    //    }
-    //
-    //    pthread_mutex_destroy(&mutex);
-    //
-    //    printf("*******Operaciones efectuadas*******\n");
-    //    // create_user_load_report(data_threads);
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++)
+    {
+        FILE *file = open_file(file_path);
+        data_threads[i].file = file;
+        data_threads[i].start_pointer = pointers[i];
+    }
+
+    data_threads[0].line_count = linesForWorker1;
+    data_threads[1].line_count = linesForWorker2;
+    data_threads[2].line_count = linesForWorker3;
+    data_threads[3].line_count = linesForWorker4;
+
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++)
+    {
+        data_threads[i].retirements_added = 0;
+        data_threads[i].deposits_added = 0;
+        data_threads[i].transfers_added = 0;
+    }
+
+    pthread_mutex_init(&mutex, NULL);
+
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++)
+    {
+        int rc = pthread_create(&threads[i], NULL, thread_read_transaction, (void *)&data_threads[i]);
+        if (rc)
+        {
+            printf("ERROR: return code from pthread_create() is %d\n", rc);
+            return;
+        }
+    }
+
+    // Wait for threads to finish
+    for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++)
+    {
+        pthread_join(threads[i], NULL);
+    }
+
+    pthread_mutex_destroy(&mutex);
+
+    printf("*******Operaciones efectuadas*******\n");
+    create_transaction_load_report(data_threads);
 }
 
 void load_users()
