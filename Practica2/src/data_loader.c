@@ -170,6 +170,7 @@ void *thread_read(void *thread_data)
 
         if (!error_found)
         {
+            bool repeated_value = false;
             for (int i = 0; i < num_users; i++)
             {
                 if (users[i].id == no_cuenta)
@@ -181,20 +182,24 @@ void *thread_read(void *thread_data)
                         sprintf(new_error.message, "Error: El usuario con el no. de cuenta %d ya existe.\n", no_cuenta);
                         strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
                         num_errors_user_load++;
+                        repeated_value = true;
                     }
                     break;
                 }
             }
-
-            if (num_users < 500)
-            {
-                struct User new_user = {no_cuenta};
-                strcpy(new_user.name, nombre);
-                new_user.saldo = saldo;
-                users[num_users] = new_user;
-                num_users++;
-                thread_file_pointer->users_added = thread_file_pointer->users_added + 1;
+            if(!repeated_value){
+                if (num_users < 500)
+                {
+                    struct User new_user = {no_cuenta};
+                    strcpy(new_user.name, nombre);
+                    new_user.saldo = saldo;
+                    users[num_users] = new_user;
+                    num_users++;
+                    thread_file_pointer->users_added = thread_file_pointer->users_added + 1;
+                }
             }
+
+
         }
         counter++;
     }
@@ -328,7 +333,7 @@ void *thread_read_transaction(void *thread_data)
             }
             else if (operation == 3)
             {
-                if (do_transaction(source_account_id, destination_account_id, amount, true))
+                if (do_transaction(source_account_id, destination_account_id, amount, true) == 0)
                 {
                     thread_file_pointer->transfers_added = thread_file_pointer->transfers_added + 1;
                 }
