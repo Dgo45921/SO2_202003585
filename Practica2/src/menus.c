@@ -29,7 +29,7 @@ void acounts_report()
     fprintf(file, "no_cuenta,nombre,saldo\n");
     for (int i = 0; i < num_users; i++)
     {
-        fprintf(file, "%d,%s,%f\n", users[i].id, users[i].name, users[i].saldo);
+        fprintf(file, "%d,%s,%.2f\n", users[i].id, users[i].name, users[i].saldo);
     }
 
     fclose(file);

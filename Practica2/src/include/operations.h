@@ -2,7 +2,7 @@
 #include <stdbool.h>
 
 
-bool find_user(int id);
+int find_user(int id);
 
 
 void get_user_information(int account_id);

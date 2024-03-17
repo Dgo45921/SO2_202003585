@@ -65,7 +65,7 @@ long get_file_size(FILE *file)
 char *ask_file_path()
 {
     static char file_path[256];
-    printf("Ingrese la ruta del archivo de usuarios .csv: ");
+    printf("Ingrese la ruta del archivo (.csv) -> ");
     scanf("%255s", file_path);
     if (strstr(file_path, ".csv") == NULL)
     {
@@ -234,17 +234,17 @@ void *thread_read_transaction(void *thread_data)
             if (column == 0)
             {
                 operation = atoi(token);
-                if (operation != 1 || operation != 2 || operation != 3)
+                if (operation != 1 && operation != 2 && operation != 3)
                 {
-                    if (num_errors_user_load < 500)
+                    if (num_errors_transaction_data < 500)
                     {
                         struct ErrorTransactionData new_error;
-                        sprintf(new_error.message, "Error: operacion debe ser 1 o 2 o 3 %s", token);
-                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
-                        num_errors_user_load++;
+                        sprintf(new_error.message, "Error: transaccion no valida: %s", token);
+                        strcpy(errors_transaction_data[num_errors_transaction_data].message, new_error.message);
+                        num_errors_transaction_data++;
+                        error_found = true;
+                        break;
                     }
-                    error_found = true;
-                    break;
                 }
             }
             else if (column == 1)
@@ -252,12 +252,12 @@ void *thread_read_transaction(void *thread_data)
                 source_account_id = atoi(token);
                 if (source_account_id <= 0)
                 {
-                    if (num_errors_user_load < 500)
+                    if (num_errors_transaction_data < 500)
                     {
                         struct ErrorTransactionData new_error;
                         sprintf(new_error.message, "Error: numero de cuenta origen debe de ser un entero positivo %s", token);
-                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
-                        num_errors_user_load++;
+                        strcpy(errors_transaction_data[num_errors_transaction_data].message, new_error.message);
+                        num_errors_transaction_data++;
                     }
                     error_found = true;
                     break;
@@ -265,15 +265,15 @@ void *thread_read_transaction(void *thread_data)
             }
             else if (column == 2)
             {
-                source_account_id = atoi(token);
-                if (source_account_id <= 0)
+                destination_account_id = atoi(token);
+                if (destination_account_id < 0)
                 {
-                    if (num_errors_user_load < 500)
+                    if (num_errors_transaction_data < 500)
                     {
                         struct ErrorTransactionData new_error;
                         sprintf(new_error.message, "Error: numero de cuenta destino debe de ser un entero positivo %s", token);
-                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
-                        num_errors_user_load++;
+                        strcpy(errors_transaction_data[num_errors_transaction_data].message, new_error.message);
+                        num_errors_transaction_data++;
                     }
                     error_found = true;
                     break;
@@ -285,12 +285,20 @@ void *thread_read_transaction(void *thread_data)
 
                 if (!isFloat(token) || amount < 0)
                 {
-                    if (num_errors_user_load < 500)
+                    if (num_errors_transaction_data < 500)
                     {
                         struct ErrorTransactionData new_error;
+
+                        size_t newline_pos = strcspn(token, "\n");
+
+                        // Replace newline with null terminator if found
+                        if (newline_pos < strlen(token))
+                        {
+                            token[newline_pos] = '\0';
+                        }
                         sprintf(new_error.message, "Error: saldo debe de ser un positivo real %s", token);
-                        strcpy(errors_user_load[num_errors_user_load].message, new_error.message);
-                        num_errors_user_load++;
+                        strcpy(errors_transaction_data[num_errors_transaction_data].message, new_error.message);
+                        num_errors_transaction_data++;
                     }
                     error_found = true;
                     break;
@@ -320,7 +328,8 @@ void *thread_read_transaction(void *thread_data)
             }
             else if (operation == 3)
             {
-                if (do_transaction(source_account_id, destination_account_id, amount, true)){
+                if (do_transaction(source_account_id, destination_account_id, amount, true))
+                {
                     thread_file_pointer->transfers_added = thread_file_pointer->transfers_added + 1;
                 }
             }
@@ -406,8 +415,6 @@ void create_transaction_load_report(struct ThreadTransactionData data_threads[])
     int total_deposits = 0;
     int total_retirements = 0;
     int total_transfers = 0;
-    
-
 
     for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++)
     {
@@ -424,7 +431,7 @@ void create_transaction_load_report(struct ThreadTransactionData data_threads[])
     fprintf(file, "====Operaciones por hilo====\n");
     for (int i = 0; i < NUM_THREADS_TRANSACTIONS; i++)
     {
-        fprintf(file, "     Hilo #%d: %d\n", i+1 ,data_threads[i].deposits_added + data_threads[i].retirements_added + data_threads[i].transfers_added );
+        fprintf(file, "     Hilo #%d: %d\n", i + 1, data_threads[i].deposits_added + data_threads[i].retirements_added + data_threads[i].transfers_added);
     }
 
     fprintf(file, "=====Errores======:\n");

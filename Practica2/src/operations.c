@@ -1,23 +1,22 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdbool.h>
 
 #include "include/operations.h"
 #include "include/structures.h"
 #include "include/utils.h"
 
-bool find_user(int id)
+int find_user(int id)
 {
 
     for (int i = 0; i < num_users; i++)
     {
         if (users[i].id == id)
         {
-            return true;
+            return i;
         }
     }
 
-    return false;
+    return -1;
 }
 
 int get_int_input_number(const char *prompt)
@@ -66,17 +65,17 @@ int do_deposit(int account_id, float amount, bool register_error)
 {
 
     char message[100];
-    if (find_user(account_id) == false)
+    if (find_user(account_id) == -1)
     {
         if (register_error)
         {
             struct ErrorTransactionData error;
-            sprintf(error.message, "Usuario con no. de cuenta: %d no encontrado", account_id);
+            sprintf(error.message, "Error:Usuario con no. de cuenta: %d no encontrado", account_id);
             errors_transaction_data[num_errors_transaction_data] = error;
             num_errors_transaction_data++;
             return -1;
         }
-        printf("Usuario con no. de cuenta: %d no encontrado\n", account_id);
+        printf("Error:Usuario con no. de cuenta: %d no encontrado\n", account_id);
         return -1;
     }
     for (int i = 0; i < num_users; i++)
@@ -84,7 +83,10 @@ int do_deposit(int account_id, float amount, bool register_error)
         if (users[i].id == account_id)
         {
             users[i].saldo += amount;
-            printf("Deposito exitoso. Saldo actual: %f\n", users[i].saldo);
+            if (!register_error)
+            {
+                printf("Deposito exitoso. Saldo actual: %f\n", users[i].saldo);
+            }
             return 0;
         }
     }
@@ -92,17 +94,17 @@ int do_deposit(int account_id, float amount, bool register_error)
 
 int do_money_retirement(int account_id, float amount, bool register_error)
 {
-    if (find_user(account_id) == false)
+    if (find_user(account_id) == -1)
     {
         if (register_error)
         {
             struct ErrorTransactionData error;
-            sprintf(error.message, "Usuario con no. de cuenta: %d no encontrado", account_id);
+            sprintf(error.message, "Error:Usuario con no. de cuenta: %d no encontrado", account_id);
             errors_transaction_data[num_errors_transaction_data] = error;   
             num_errors_transaction_data++;
             return -1;
         }
-        printf("Usuario con no. de cuenta: %d no encontrado\n", account_id);
+        printf("Error:Usuario con no. de cuenta: %d no encontrado\n", account_id);
         return -1;
     }
 
@@ -115,16 +117,19 @@ int do_money_retirement(int account_id, float amount, bool register_error)
                 if (register_error)
                 {
                     struct ErrorTransactionData error;
-                    sprintf(error.message, "Saldo insuficiente");
+                    sprintf(error.message, "Error: Saldo insuficiente para retiro %f < %f", users[i].saldo, amount);
                     errors_transaction_data[num_errors_transaction_data] = error;
                     num_errors_transaction_data++;
                     return -1;;
                 }
-                printf("Saldo insuficiente\n");
+                printf("Saldo insuficiente para retiro %f < %f\n", users[i].saldo, amount);
                 return -1;
             }
             users[i].saldo -= amount;
-            printf("Retiro exitoso. Saldo actual: %f\n", users[i].saldo);
+            if (!register_error)
+            {
+                printf("Retiro exitoso. Saldo actual: %f\n", users[i].saldo);
+            }
             return 0;
         }
     }
@@ -132,70 +137,54 @@ int do_money_retirement(int account_id, float amount, bool register_error)
 
 int do_transaction(int source_account_id, int destination_account_id, float amount, bool register_error)
 {
-    printf("Transaccion\n");
-    if (find_user(source_account_id) == false)
+
+
+    int source_account_index = find_user(source_account_id);
+    int destination_account_index = find_user(destination_account_id);
+
+    if (source_account_id == -1)
     {
         if (register_error)
         {
             struct ErrorTransactionData error;
-            sprintf(error.message, "Usuario con no. de cuenta: %d no encontrado", source_account_id);
+            sprintf(error.message, "Error:Usuario con no. de cuenta: %d no encontrado", source_account_id);
             errors_transaction_data[num_errors_transaction_data] = error;
             num_errors_transaction_data++;
             return -1;
         }
-        printf("Usuario con no. de cuenta: %d no encontrado\n", source_account_id);
+        printf("Error:Usuario con no. de cuenta: %d no encontrado\n", source_account_id);
         return -1;
     }
-    if (find_user(destination_account_id) == false)
+    if (destination_account_index == -1)
     {
         if (register_error)
         {
             struct ErrorTransactionData error;
-            sprintf(error.message, "Usuario con no. de cuenta: %d no encontrado", destination_account_id);
+            sprintf(error.message, "Error:Usuario con no. de cuenta: %d no encontrado", destination_account_id);
             errors_transaction_data[num_errors_transaction_data] = error;
             num_errors_transaction_data++;
             return -1;
         }
-        printf("Usuario con no. de cuenta: %d no encontrado\n", destination_account_id);
+        printf("Error:Usuario con no. de cuenta: %d no encontrado\n", destination_account_id);
         return -1;
     }
 
-    int source_index = -1;
-    int destination_index = -1;
-    for (int i = 0; i < num_users; i++)
-    {
-        if (users[i].id == source_account_id)
-        {
-            source_index = i;
-        }
-        if (users[i].id == destination_account_id)
-        {
-            destination_index = i;
-        }
-    }
-
-    if (source_index != -1 && destination_index != -1)
-    {
-        printf("No se hallaron usuarios con los numeros de cuenta dados\n");
-        return -1;
-    }
-
-    if (users[source_index].saldo < amount)
+    if (users[source_account_index].saldo < amount)
     {
         if (register_error)
         {
             struct ErrorTransactionData error;
-            sprintf(error.message, "Saldo insuficiente");
+            sprintf(error.message, "Error: Saldo insuficiente para transferencia %f < %f", users[source_account_index].saldo, amount);
             errors_transaction_data[num_errors_transaction_data] = error;
             num_errors_transaction_data++;
             return -1;
         }
-        printf("Saldo insuficiente\n");
+        printf("Error Saldo insuficiente para transferencia %f < %f", users[source_account_index].saldo, amount);
         return -1;
     }
 
-    users[source_index].saldo -= amount;
-    users[destination_index].saldo += amount;
+    users[source_account_index].saldo -= amount;
+    users[destination_account_index].saldo += amount;
     if (!register_error)
     {
         printf("Transaccion exitosa\n");
@@ -206,9 +195,9 @@ int do_transaction(int source_account_id, int destination_account_id, float amou
 
 void get_user_information(int account_id)
 {
-    if (find_user(account_id) == false)
+    if (find_user(account_id) == -1)
     {
-        printf("Usuario con no. de cuenta: %d no encontrado\n", account_id);
+        printf("Error:Usuario con no. de cuenta: %d no encontrado\n", account_id);
         return;
     }
 
